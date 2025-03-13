@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF to DOCX Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.16.0/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.1.0/docx.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        #output {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h2>PDF to DOCX Converter</h2>
+    <input type="file" id="pdfFile" accept="application/pdf">
+    <button onclick="convertPDFtoDOCX()">Convert</button>
+    <div id="output"></div>
+
+    <script>
+        async function convertPDFtoDOCX() {
+            const fileInput = document.getElementById("pdfFile");
+            if (!fileInput.files.length) {
+                alert("Please select a PDF file first.");
+                return;
+            }
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.readAsArrayBuffer(file);
+            reader.onload = async function() {
+                const pdfData = new Uint8Array(reader.result);
+                const pdfDoc = await PDFLib.PDFDocument.load(pdfData);
+                let extractedText = "";
+                for (let i = 0; i < pdfDoc.getPageCount(); i++) {
+                    const page = pdfDoc.getPage(i);
+                    extractedText += `Page ${i + 1}:\n${await page.getTextContent()}\n\n`;
+                }
+                generateDOCX(extractedText);
+            };
+        }
+
+        function generateDOCX(text) {
+            const doc = new docx.Document({
+                sections: [
+                    {
+                        properties: {},
+                        children: [
+                            new docx.Paragraph({
+                                children: [new docx.TextRun(text)],
+                            }),
+                        ],
+                    },
+                ],
+            });
+            docx.Packer.toBlob(doc).then((blob) => {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = "converted.docx";
+                link.innerText = "Download DOCX";
+                document.getElementById("output").innerHTML = "";
+                document.getElementById("output").appendChild(link);
+            });
+        }
+    </script>
+</body>
+</html>
